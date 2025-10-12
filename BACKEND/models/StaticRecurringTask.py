@@ -1,0 +1,33 @@
+from sqlalchemy import Column, Integer, String, DateTime
+from ..app import Base
+
+class StaticRecurringTask(Base):
+    __tablename__ = "static-recurring-tasks"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String)
+    due_datetime = Column(DateTime)
+    priority = Column(String)
+    prior_notice = Column(String)
+    delta_months = Column(Integer)
+    delta_weeks = Column(Integer)
+    delta_days = Column(Integer)
+    delta_hours = Column(Integer)
+    created_at = Column(DateTime)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "due_datetime": self.due_datetime.isoformat(),
+            "priority": self.priority,
+            "prior_notice": self.prior_notice,
+            "delta_months": self.delta_months,
+            "delta_weeks": self.delta_weeks,
+            "delta_days": self.delta_days,
+            "delta_hours": self.delta_hours,
+            "created_at": self.created_at.isoformat()
+        }
+
+    def get_id(self):
+        return str(self.id)
