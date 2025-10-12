@@ -3,8 +3,6 @@ import { Button, StyleSheet, View } from 'react-native';
 import { Surface } from 'react-native-paper';
 import { ThemedText } from './ThemedText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useAuth } from '../scripts/AuthContext';
-import { ThemedView } from './ThemedView';
 import { Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 

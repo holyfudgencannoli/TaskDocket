@@ -120,82 +120,6 @@ class User(Base):
     def get_id(self):
         return str(self.id)
 
-class Task(Base):
-    __tablename__ = 'tasks'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String)
-    due_datetime = Column(String)
-    log_datetime = Column(String)
-    fin_datetime = Column(String)
-    completed = Column(Boolean, default=False)
-    memo = Column(String)
-    #priority = Column(Integer)
-
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    user = relationship("User", back_populates="tasks", lazy="noload")
-
-
-    def to_dict(self):
-        return{
-            'id': self.id,
-            'name': self.name,
-            'due_datetime': self.due_datetime,
-            'log_datetime': self.log_datetime,
-            'fin_datetime': self.fin_datetime,
-            'completed': self.completed,
-            'memo': self.memo,
-            'user_id': self.user_id
-        }
-    
-class RepeatingTask(Base):
-    __tablename__ = "repeating_tasks"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String)
-    created_at = Column(DateTime)
-    frequency_months = Column(Integer, default=0)
-    frequency_weeks = Column(Integer, default=0)
-    frequency_days = Column(Integer, default=0)
-    frequency_hours = Column(Integer, default=0)
-    frequency_minutes = Column(Integer, default=0)
-    first_due = Column(DateTime)
-    next_due = Column(DateTime)
-    last_completed = Column(DateTime)
-    memo = Column(String)
-    high_priority = Column(Boolean, default=False)
-
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    user = relationship("User", back_populates="repeating_tasks", lazy="noload")
-
-
-    def to_dict(self):
-        return{
-            'id': self.id,
-            'name': self.name,
-            'created_at': self.created_at.isoformat(),
-            'frequency_months': self.frequency_months,
-            'frequency_weeks': self.frequency_weeks,
-            'frequency_days': self.frequency_days,
-            'frequency_hours': self.frequency_hours,
-            'frequency_minutes': self.frequency_minutes,
-
-            'first_due': self.first_due.isoformat(),
-            'next_due': None if not self.next_due else self.next_due.isoformat(),
-            'last_completed': None if not self.last_completed else self.last_completed.isoformat(),
-            'memo': self.memo,
-            'high_priority': self.high_priority,
-            'user_id': self.user_id
-        }
-
-    def get_relativedelta(self):
-        return relativedelta(
-            months=self.frequency_months,
-            weeks=self.frequency_weeks,
-            days=self.frequency_days,
-            hours=self.frequency_hours,
-            minutes=self.frequency_minutes
-        )
-
 Base.metadata.create_all(bind=engine)
 
 
@@ -711,7 +635,3 @@ def delete_repeating_tasks(task_id):
     db_session.close()
 
     return "", 204
-
-if __name__ == '__main__':
-    app.run(debug=True)
-

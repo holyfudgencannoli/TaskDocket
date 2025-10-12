@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime
-from ..app import Base
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from ..db import Base
 
 class DynamicRecurringTask(Base):
     __tablename__ = "dynamic-recurring-tasks"
@@ -11,6 +12,9 @@ class DynamicRecurringTask(Base):
     prior_notice = Column(String)
     created_at = Column(DateTime)
 
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship('User', back_populates='dynamic_recurring_tasks')
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -18,7 +22,8 @@ class DynamicRecurringTask(Base):
             "due_datetime": self.due_datetime.isoformat(),
             "priority": self.priority,
             "prior_notice": self.prior_notice,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat(),
+            'user_id': self.user_id
         }
 
     def get_id(self):

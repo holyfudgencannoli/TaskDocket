@@ -88,8 +88,8 @@ const HomeNav = createMaterialTopTabNavigator()
 function HomeNavGroup() {
     return(
             <HomeNav.Navigator>
-                <HomeNav.Screen component={Dashboard} name='Dashboard' />
-                <HomeNav.Screen component={NewTask} name='New Task' />
+                <HomeNav.Screen component={Dashboard} name='Due Today' />
+                <HomeNav.Screen component={NewTask} name='Due This Week' />
                 {/* <HomeNav.Screen component={RepeatingTaskInput} name='New Repeating Task' /> */}
 
             </HomeNav.Navigator>

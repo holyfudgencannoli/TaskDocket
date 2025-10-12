@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
-from ..app import Base
+from ..db import Base
 
 class LimitedOpportunityTask(Base):
     __tablename__ = "limited-opportunity-tasks"

@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, DateTime
-from ..app import Base
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from ..db import Base
+from sqlalchemy.orm import relationship
 
 class StaticRecurringTask(Base):
     __tablename__ = "static-recurring-tasks"
@@ -15,6 +16,10 @@ class StaticRecurringTask(Base):
     delta_hours = Column(Integer)
     created_at = Column(DateTime)
 
+    
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship('User', back_populates='dynamic_recurring_tasks')
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -26,7 +31,8 @@ class StaticRecurringTask(Base):
             "delta_weeks": self.delta_weeks,
             "delta_days": self.delta_days,
             "delta_hours": self.delta_hours,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat(),
+            "user_id": self.user_id
         }
 
     def get_id(self):
