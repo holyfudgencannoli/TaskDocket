@@ -1,16 +1,26 @@
-from sqlalchemy import Column, Integer, String, DateTime
-from ..db import Base
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from ...db import Base
+
 
 class OneTimeTask(Base):
-    __tablename__ = "one-time-tasks"
+    __tablename__ = "one_time_tasks"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     name = Column(String)
     due_datetime = Column(DateTime)
     priority = Column(String)
-    prior_notice = Column(String)
+    prior_notice_months = Column(Integer)
+    prior_notice_weeks = Column(Integer)
+    prior_notice_days = Column(Integer)
+    prior_notice_hours = Column(Integer)
     created_at = Column(DateTime)
-    user_id = Column(Integer)
+    
+    completed_task = relationship("CompletedTask", back_populates='ot_task')
+
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship('User', back_populates='one_time_tasks')
+
 
     def to_dict(self):
         return {

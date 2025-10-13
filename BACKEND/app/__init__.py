@@ -10,628 +10,495 @@ from config import Config
 from datetime import datetime, timedelta
 from sqlalchemy.exc import SQLAlchemyError
 from dateutil.relativedelta import relativedelta
+from .db import Base, engine, db_session
+from .models import *
+from .routes import *
+from .routes.Authentication.auth_routes import BLACKLIST
+
+def create_app():
+
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8081", "http://localhost"]}}, supports_credentials=True)
+    jwt = JWTManager(app)
 
 
-app = Flask(__name__)
-app.config.from_object(Config)
-CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8081", "http://localhost:5173"]}}, supports_credentials=True)
-jwt = JWTManager(app)
-
-@jwt.token_in_blocklist_loader
-def check_if_token_revoked(jwt_header, jwt_payload):
-    jti = jwt_payload["jti"]
-    return jti in BLACKLIST
-
-# Helper functions
-def create_user(username, password_hash, email, phone, is_admin):
-    db_session = SessionLocal()
-    already_there = db_session.query(User).filter(User.username==username).first()
-
-    if not already_there:
-        user = User(
-            username=username,
-            email=email,
-            is_admin=is_admin,
-            phone=phone,
-            password_hash=password_hash,
-            provider="local"
-        )
-
-        db_session.add(user)
-        db_session.commit()
-    else:
-        raise ValueError("User already exists")
-    db_session.close()
-
+    @jwt.token_in_blocklist_loader
+    def check_if_token_revoked(jwt_header, jwt_payload):
+        jti = jwt_payload["jti"]
+        return jti in BLACKLIST
     
-def get_user_by_user_id(user_id):
-    db_session = SessionLocal()
-    user = db_session.query(User).filter_by(id=user_id).first()
-    db_session.close()
-    if user:
-        # return consistent keys
-        return {
-            "id": user.id,
-            "username": user.username,
-            "password_hash": user.password_hash,
-            "is_admin": user.is_admin
-        }
-    return None
+    Base.metadata.create_all(bind=engine)
     
-
-def get_user_by_username(username):
-    db_session = SessionLocal()
-    user = db_session.query(User).filter_by(username=username).first()
-    db_session.close()
-    if user:
-        # return consistent keys
-        return {
-            "id": user.id,
-            "username": user.username,
-            "password_hash": user.password_hash,
-            "is_admin": user.is_admin
-        }
-    return None
-
-def check_password(user, password):
-    if not user or "password_hash" not in user:
-        return False
-    return check_password_hash(user["password_hash"], password)
+    app.register_blueprint(ott_bp, url_prefix='/api/ott')
+    app.register_blueprint(lot_bp, url_prefix='/api/lot')
+    app.register_blueprint(srt_bp, url_prefix='/api/srt')
+    app.register_blueprint(drt_bp, url_prefix='/api/drt')
+    app.register_blueprint(users_bp, url_prefix='/api/users')
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
 
 
-
-Base = declarative_base()
-
-
-engine = create_engine(Config.DATABASE_URL, echo=True, future=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-
-
-
-class User(Base):
-    __tablename__ = 'users' 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String(1024), unique=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    is_admin = Column(Boolean, default=False)
-    email = Column(String)
-    phone = Column(String)
-    provider = Column(String)
-    provider_id = Column(Integer)
-    created_at = Column(DateTime)
-    last_login =  Column(DateTime)
-    tasks = relationship("Task", back_populates="user", lazy="noload")
-    repeating_tasks = relationship("RepeatingTask", back_populates="user", lazy="noload")
-
-    def to_dict(self):
-        return{
-            'id': self.id,
-            'username': self.username,
-            'is_admin': self.is_admin,
-            'email': self.email,
-            'phone': self.phone,
-            'provider': self.provider,
-            'provider_id': self.provider_id,
-            'created_at': self.created_at,
-            'last_login': self.last_login,
-        }
-    
-    def get_id(self):
-        return str(self.id)
-
-Base.metadata.create_all(bind=engine)
-
-
-
-@app.route('/api/auth/register', methods=['POST'])
-def register():
-    data = request.form
-
-    username = data.get('username')
-    email = data.get('email')
-    phone = data.get('phone')
-    isAdmin = data.get('is_admin')
-
-    if isAdmin == 'admin123':
-        is_admin = True
-    else:
-        is_admin = False
-
-    password_hash = generate_password_hash(data.get('password'))
-
-    try:
-        create_user(username, password_hash, email, phone, is_admin)
-    except ValueError:
-        return jsonify({"msg": "User already exists"}), 400
-    return jsonify({"msg": "User created"}), 201
-
-@app.route('/api/auth/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    user = get_user_by_username(data['username'])
-    if user and check_password(user, data['password']):
-        if user['is_admin']:
-            additional_claims = {"is_admin": True}
-            access_token = create_access_token(
-                identity=str(user['id']),
-                additional_claims=additional_claims,
-                expires_delta=timedelta(hours=1)
-            )
-        access_token = create_access_token(identity=str(user['id']), expires_delta=timedelta(hours=1))
-
-        user_data = {"id": user["id"], "username": user["username"]}
-        return jsonify({'access_token': access_token, 'user': user_data})
-    return jsonify({"msg": "Bad username or password"}), 401
-
-BLACKLIST = set()
-
-@app.route("/api/auth/logout", methods=["POST"])
-@jwt_required()
-def logout():
-    jti = get_jwt()["jti"]
-    BLACKLIST.add(jti)
-    return jsonify(msg="Successfully logged out"), 200
-
-
-@app.route('/api/log-tasks', methods=['POST'])
-@jwt_required()
-def log_task():
-    user_id = get_jwt_identity()
-
-    db_session = SessionLocal()
-
-    data = request.get_json()
-
-    name = data['name']
-    due_datetime = data['due_datetime']
-    log_datetime = data['log_datetime']
-    fin_datetime = data['fin_datetime']
-    completed = data['completed']
-    memo = data['memo']
-    user_id = int(user_id)
-
-    new_task = Task(
-        name=name,
-        due_datetime=due_datetime,
-        log_datetime=log_datetime,
-        user_id=user_id,
-        completed=completed
-    )
-
-    db_session.add(new_task)
-    db_session.commit()
-
-    new_task_dict = new_task.to_dict()
-    db_session.close()
-
-
-    return jsonify({'success': True, 'task': new_task_dict})
-
-
-@app.route('/api/get-tasks-all', methods=['GET'])
+# @app.route('/api/log-tasks', methods=['POST'])
 # @jwt_required()
-def get_tasks_all():
-    # user_id = get_jwt_identity()
+# def log_task():
+#     user_id = get_jwt_identity()
 
-    db_session = SessionLocal()
+#     db_session = SessionLocal()
 
-    # tasks = db_session.query(Task).filter_by(user_id=user_id).all()
-    tasks = db_session.query(Task).all()
+#     data = request.get_json()
 
-    tasks_serialized = [t.to_dict() for t in tasks]
-    db_session.close()
-    return jsonify({'tasks': tasks_serialized})
+#     name = data['name']
+#     due_datetime = data['due_datetime']
+#     log_datetime = data['log_datetime']
+#     fin_datetime = data['fin_datetime']
+#     completed = data['completed']
+#     memo = data['memo']
+#     user_id = int(user_id)
 
-@app.route('/api/get-tasks', methods=['GET'])
-@jwt_required()
-def get_tasks():
-    user_id = get_jwt_identity()
+#     new_task = Task(
+#         name=name,
+#         due_datetime=due_datetime,
+#         log_datetime=log_datetime,
+#         user_id=user_id,
+#         completed=completed
+#     )
 
-    db_session = SessionLocal()
+#     db_session.add(new_task)
+#     db_session.commit()
 
-    task_objects = db_session.query(Task).filter_by(user_id=user_id).all()
-
-    tasks = [t.to_dict() for t in task_objects]
-
-    db_session.close()
-
-    return jsonify({'tasks': tasks})
-
-
-@app.route('/api/get-completed-tasks', methods=['GET'])
-@jwt_required()
-def get_completed_tasks():
-    user_id = get_jwt_identity()
-
-    db_session = SessionLocal()
-
-    task_objects = db_session.query(Task).filter_by(
-        user_id=user_id,
-        completed=True
-    ).all()
-
-    tasks = [t.to_dict() for t in task_objects]
-
-    db_session.close()
-
-    return jsonify({'tasks': tasks})
+#     new_task_dict = new_task.to_dict()
+#     db_session.close()
 
 
-@app.route('/api/get-tasks-by-date', methods=['POST'])
-@jwt_required()
-def get_tasks_by_date():
-    user_id = get_jwt_identity()
-
-    data = request.get_json()
-
-    date_str = data.get('date')
-
-    target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-
-    db_session = SessionLocal()
-
-    tasks = []
-
-    for t in db_session.query(Task).filter_by(user_id=user_id).all():
-        if t.due_datetime: 
-            try:
-                task_date = datetime.fromisoformat(t.due_datetime).date()
-                if task_date == target_date:
-                    tasks.append(t.to_dict())
-            except ValueError:
-                # optionally log invalid date strings
-                print("Skipping invalid datetime:", t.due_datetime)
-    db_session.close()
-
-    return jsonify({'tasks': tasks})
-
-@app.route('/api/get-completed-tasks-by-date', methods=['POST'])
-@jwt_required()
-def get_completed_tasks_by_date():
-    user_id = get_jwt_identity()
-
-    data = request.get_json()
-
-    date_str = data.get('date')
-
-    target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-
-    db_session = SessionLocal()
-
-    tasks = []
-
-    for t in db_session.query(Task).filter_by(
-        user_id=user_id,
-        completed=True    
-    ).all():
-        if t.due_datetime: 
-            try:
-                task_date = datetime.fromisoformat(t.due_datetime).date()
-                if task_date == target_date:
-                    tasks.append(t.to_dict())
-            except ValueError:
-                # optionally log invalid date strings
-                print("Skipping invalid datetime:", t.due_datetime)
-    db_session.close()
-
-    return jsonify({'tasks': tasks})
+#     return jsonify({'success': True, 'task': new_task_dict})
 
 
-from datetime import datetime
+# @app.route('/api/get-tasks-all', methods=['GET'])
+# # @jwt_required()
+# def get_tasks_all():
+#     # user_id = get_jwt_identity()
 
-@app.route('/api/get-tasks-today', methods=['GET'])
+#     db_session = SessionLocal()
+
+#     # tasks = db_session.query(Task).filter_by(user_id=user_id).all()
+#     tasks = db_session.query(Task).all()
+
+#     tasks_serialized = [t.to_dict() for t in tasks]
+#     db_session.close()
+#     return jsonify({'tasks': tasks_serialized})
+
+# @app.route('/api/get-tasks', methods=['GET'])
 # @jwt_required()
-def get_tasks_today():
-    # user_id = get_jwt_identity()
-    target_date = datetime.now().date()
+# def get_tasks():
+#     user_id = get_jwt_identity()
 
-    db_session = SessionLocal()
-    tasks = []
+#     db_session = SessionLocal()
 
-    try:
-        for t in db_session.query(Task).all():
-            if t.due_datetime:
-                try:
-                    task_date = datetime.fromisoformat(t.due_datetime).date()
-                    if task_date == target_date:
-                        tasks.append(t.to_dict())
-                except ValueError:
-                    print("Skipping invalid datetime:", t.due_datetime)
-    finally:
-        db_session.close()
+#     task_objects = db_session.query(Task).filter_by(user_id=user_id).all()
 
-    return jsonify({'tasks': tasks})
+#     tasks = [t.to_dict() for t in task_objects]
+
+#     db_session.close()
+
+#     return jsonify({'tasks': tasks})
 
 
-from datetime import datetime
+# @app.route('/api/get-completed-tasks', methods=['GET'])
+# @jwt_required()
+# def get_completed_tasks():
+#     user_id = get_jwt_identity()
 
-@app.route('/api/get-task-dates', methods=['POST'])
-@jwt_required()
-def get_task_dates():
-    user_id = get_jwt_identity()
-    db_session = SessionLocal()
+#     db_session = SessionLocal()
 
-    task_dates = (
-        db_session.query(Task.due_datetime)
-        .filter_by(user_id=user_id)
-        .all()
-    )
+#     task_objects = db_session.query(Task).filter_by(
+#         user_id=user_id,
+#         completed=True
+#     ).all()
 
-    db_session.close()
+#     tasks = [t.to_dict() for t in task_objects]
 
-    dates = []
-    for dt in task_dates:
-        if dt[0]:
-            if isinstance(dt[0], str):
-                # Parse string to datetime
-                parsed = datetime.fromisoformat(dt[0])
-                dates.append(parsed.date().isoformat())
-            else:
-                dates.append(dt[0].date().isoformat())
+#     db_session.close()
 
-    return jsonify({'dates': sorted(set(dates))})
+#     return jsonify({'tasks': tasks})
 
 
-@app.route('/api/get-tasks-to-do', methods=['GET'])
-@jwt_required()
-def get_tasks_to_do():
-    user_id = get_jwt_identity()
+# @app.route('/api/get-tasks-by-date', methods=['POST'])
+# @jwt_required()
+# def get_tasks_by_date():
+#     user_id = get_jwt_identity()
 
-    db_session = SessionLocal()
+#     data = request.get_json()
 
-    tt = db_session.query(Task).filter_by(user_id=user_id, completed=False).all()
+#     date_str = data.get('date')
 
-    tasks = []
-    for t in tt:
-        tasks.append(t.to_dict())
-    db_session.close()
+#     target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
-    return jsonify({'tasks': tasks})
+#     db_session = SessionLocal()
 
-@app.route('/api/mark-complete', methods=['POST'])
-@jwt_required()
-def mark_complete():
-    user_id = get_jwt_identity()
+#     tasks = []
 
-    data = request.get_json()
+#     for t in db_session.query(Task).filter_by(user_id=user_id).all():
+#         if t.due_datetime: 
+#             try:
+#                 task_date = datetime.fromisoformat(t.due_datetime).date()
+#                 if task_date == target_date:
+#                     tasks.append(t.to_dict())
+#             except ValueError:
+#                 # optionally log invalid date strings
+#                 print("Skipping invalid datetime:", t.due_datetime)
+#     db_session.close()
 
-    task_id = data.get('task_id')
+#     return jsonify({'tasks': tasks})
 
-    db_session = SessionLocal()
+# @app.route('/api/get-completed-tasks-by-date', methods=['POST'])
+# @jwt_required()
+# def get_completed_tasks_by_date():
+#     user_id = get_jwt_identity()
 
-    task_obj = db_session.query(Task).filter_by(id=task_id, user_id=user_id).first() #type:ignore
+#     data = request.get_json()
+
+#     date_str = data.get('date')
+
+#     target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+#     db_session = SessionLocal()
+
+#     tasks = []
+
+#     for t in db_session.query(Task).filter_by(
+#         user_id=user_id,
+#         completed=True    
+#     ).all():
+#         if t.due_datetime: 
+#             try:
+#                 task_date = datetime.fromisoformat(t.due_datetime).date()
+#                 if task_date == target_date:
+#                     tasks.append(t.to_dict())
+#             except ValueError:
+#                 # optionally log invalid date strings
+#                 print("Skipping invalid datetime:", t.due_datetime)
+#     db_session.close()
+
+#     return jsonify({'tasks': tasks})
 
 
-    task_obj.completed = True
-    task_obj.fin_datetime = datetime.now().isoformat()
-    print(datetime.now().isoformat())
+# from datetime import datetime
 
-    db_session.commit()
-    db_session.close()
+# @app.route('/api/get-tasks-today', methods=['GET'])
+# # @jwt_required()
+# def get_tasks_today():
+#     # user_id = get_jwt_identity()
+#     target_date = datetime.now().date()
 
-    return jsonify({'message': 'Task marked complete!'})
+#     db_session = SessionLocal()
+#     tasks = []
 
-@app.route('/api/mark-complete-repeating', methods=['POST'])
-@jwt_required()
-def mark_complete_repeating():
-    user_id = get_jwt_identity()
+#     try:
+#         for t in db_session.query(Task).all():
+#             if t.due_datetime:
+#                 try:
+#                     task_date = datetime.fromisoformat(t.due_datetime).date()
+#                     if task_date == target_date:
+#                         tasks.append(t.to_dict())
+#                 except ValueError:
+#                     print("Skipping invalid datetime:", t.due_datetime)
+#     finally:
+#         db_session.close()
 
-    data = request.get_json()
+#     return jsonify({'tasks': tasks})
 
-    task_id = data.get('task_id')
 
-    db_session = SessionLocal()
+# from datetime import datetime
 
-    task_obj = db_session.query(RepeatingTask).filter_by(id=task_id, user_id=user_id).first() #type:ignore
+# @app.route('/api/get-task-dates', methods=['POST'])
+# @jwt_required()
+# def get_task_dates():
+#     user_id = get_jwt_identity()
+#     db_session = SessionLocal()
 
-    task_obj.last_completed = datetime.now()
-    task_obj.next_due = task_obj.next_due + timedelta(seconds=task_obj.frequency_seconds)
-    print(datetime.now().isoformat())
+#     task_dates = (
+#         db_session.query(Task.due_datetime)
+#         .filter_by(user_id=user_id)
+#         .all()
+#     )
 
-    db_session.commit()
-    db_session.close()
+#     db_session.close()
 
-    return jsonify({'message': 'Task marked complete!'})
+#     dates = []
+#     for dt in task_dates:
+#         if dt[0]:
+#             if isinstance(dt[0], str):
+#                 # Parse string to datetime
+#                 parsed = datetime.fromisoformat(dt[0])
+#                 dates.append(parsed.date().isoformat())
+#             else:
+#                 dates.append(dt[0].date().isoformat())
 
-@app.route("/api/export-all", methods=["GET"])
-@jwt_required()
-def export_all():
-    claims = get_jwt()
-    if not claims.get("is_admin"):
-        return jsonify({"msg": "Admins only!"}), 403
-    else:
+#     return jsonify({'dates': sorted(set(dates))})
 
-        db_session = SessionLocal()
 
-        users = db_session.query(User).all()
-        tasks = db_session.query(Task).all()
-        db_session.close()
+# @app.route('/api/get-tasks-to-do', methods=['GET'])
+# @jwt_required()
+# def get_tasks_to_do():
+#     user_id = get_jwt_identity()
 
-        # Convert to DataFrames
-        users_df = pd.DataFrame([u.to_dict() for u in users])
-        tasks_df = pd.DataFrame([t.to_dict() for t in tasks])
+#     db_session = SessionLocal()
 
-        # Save to in-memory Excel
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            users_df.to_excel(writer, index=False, sheet_name="Users")
-            tasks_df.to_excel(writer, index=False, sheet_name="Tasks")
-        output.seek(0)
+#     tt = db_session.query(Task).filter_by(user_id=user_id, completed=False).all()
 
-        return send_file(
-            output,
-            as_attachment=True,
-            download_name="backup_export.xlsx",
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+#     tasks = []
+#     for t in tt:
+#         tasks.append(t.to_dict())
+#     db_session.close()
 
-@app.route("/api/import-all", methods=["POST"])
-def import_all():
-    claims = get_jwt()
-    if not claims.get("is_admin"):
-        return jsonify({"msg": "Admins only!"}), 403
-    else:
+#     return jsonify({'tasks': tasks})
+
+# @app.route('/api/mark-complete', methods=['POST'])
+# @jwt_required()
+# def mark_complete():
+#     user_id = get_jwt_identity()
+
+#     data = request.get_json()
+
+#     task_id = data.get('task_id')
+
+#     db_session = SessionLocal()
+
+#     task_obj = db_session.query(Task).filter_by(id=task_id, user_id=user_id).first() #type:ignore
+
+
+#     task_obj.completed = True
+#     task_obj.fin_datetime = datetime.now().isoformat()
+#     print(datetime.now().isoformat())
+
+#     db_session.commit()
+#     db_session.close()
+
+#     return jsonify({'message': 'Task marked complete!'})
+
+# @app.route('/api/mark-complete-repeating', methods=['POST'])
+# @jwt_required()
+# def mark_complete_repeating():
+#     user_id = get_jwt_identity()
+
+#     data = request.get_json()
+
+#     task_id = data.get('task_id')
+
+#     db_session = SessionLocal()
+
+#     task_obj = db_session.query(RepeatingTask).filter_by(id=task_id, user_id=user_id).first() #type:ignore
+
+#     task_obj.last_completed = datetime.now()
+#     task_obj.next_due = task_obj.next_due + timedelta(seconds=task_obj.frequency_seconds)
+#     print(datetime.now().isoformat())
+
+#     db_session.commit()
+#     db_session.close()
+
+#     return jsonify({'message': 'Task marked complete!'})
+
+# @app.route("/api/export-all", methods=["GET"])
+# @jwt_required()
+# def export_all():
+#     claims = get_jwt()
+#     if not claims.get("is_admin"):
+#         return jsonify({"msg": "Admins only!"}), 403
+#     else:
+
+#         db_session = SessionLocal()
+
+#         users = db_session.query(User).all()
+#         tasks = db_session.query(Task).all()
+#         db_session.close()
+
+#         # Convert to DataFrames
+#         users_df = pd.DataFrame([u.to_dict() for u in users])
+#         tasks_df = pd.DataFrame([t.to_dict() for t in tasks])
+
+#         # Save to in-memory Excel
+#         output = io.BytesIO()
+#         with pd.ExcelWriter(output, engine="openpyxl") as writer:
+#             users_df.to_excel(writer, index=False, sheet_name="Users")
+#             tasks_df.to_excel(writer, index=False, sheet_name="Tasks")
+#         output.seek(0)
+
+#         return send_file(
+#             output,
+#             as_attachment=True,
+#             download_name="backup_export.xlsx",
+#             mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+#         )
+
+# @app.route("/api/import-all", methods=["POST"])
+# def import_all():
+#     claims = get_jwt()
+#     if not claims.get("is_admin"):
+#         return jsonify({"msg": "Admins only!"}), 403
+#     else:
             
-        if "file" not in request.files:
-            return jsonify({"error": "No file uploaded"}), 400
+#         if "file" not in request.files:
+#             return jsonify({"error": "No file uploaded"}), 400
         
-        file = request.files["file"]
+#         file = request.files["file"]
 
-        try:
-            xls = pd.ExcelFile(file)
-        except Exception as e:
-            return jsonify({"error": f"Failed to read Excel: {str(e)}"}), 400
+#         try:
+#             xls = pd.ExcelFile(file)
+#         except Exception as e:
+#             return jsonify({"error": f"Failed to read Excel: {str(e)}"}), 400
 
-        db_session = SessionLocal()
-        imported_users = imported_tasks = 0
+#         db_session = SessionLocal()
+#         imported_users = imported_tasks = 0
 
-        # --- Users ---
-        if "Users" in xls.sheet_names:
-            users_df = pd.read_excel(xls, sheet_name="Users")
-            for _, row in users_df.iterrows():
-                existing = db_session.query(User).filter_by(username=row.get("username")).first()
-                if not existing:
-                    user = User(
-                        username=row.get("username"),
-                        email=row.get("email"),
-                        password=row.get("password"),  # ⚠️ ideally hash before import
-                    )
-                    db_session.add(user)
-                    imported_users += 1
+#         # --- Users ---
+#         if "Users" in xls.sheet_names:
+#             users_df = pd.read_excel(xls, sheet_name="Users")
+#             for _, row in users_df.iterrows():
+#                 existing = db_session.query(User).filter_by(username=row.get("username")).first()
+#                 if not existing:
+#                     user = User(
+#                         username=row.get("username"),
+#                         email=row.get("email"),
+#                         password=row.get("password"),  # ⚠️ ideally hash before import
+#                     )
+#                     db_session.add(user)
+#                     imported_users += 1
 
-        # --- Tasks ---
-        if "Tasks" in xls.sheet_names:
-            tasks_df = pd.read_excel(xls, sheet_name="Tasks")
-            for _, row in tasks_df.iterrows():
-                existing = db_session.query(Task).filter_by(
-                    name=row.get("name"),
-                    log_datetime=row.get("log_datetime")
-                ).first()
-                if not existing:
-                    task = Task(
-                        name=row.get("name"),
-                        due_datetime=row.get("due_datetime"),
-                        log_datetime=row.get("log_datetime"),
-                        fin_datetime=row.get("fin_datetime"),
-                        completed=bool(row.get("completed")),
-                        memo=row.get("memo"),
-                        user_id=row.get("user_id")
-                    )
-                    db_session.add(task)
-                    imported_tasks += 1
+#         # --- Tasks ---
+#         if "Tasks" in xls.sheet_names:
+#             tasks_df = pd.read_excel(xls, sheet_name="Tasks")
+#             for _, row in tasks_df.iterrows():
+#                 existing = db_session.query(Task).filter_by(
+#                     name=row.get("name"),
+#                     log_datetime=row.get("log_datetime")
+#                 ).first()
+#                 if not existing:
+#                     task = Task(
+#                         name=row.get("name"),
+#                         due_datetime=row.get("due_datetime"),
+#                         log_datetime=row.get("log_datetime"),
+#                         fin_datetime=row.get("fin_datetime"),
+#                         completed=bool(row.get("completed")),
+#                         memo=row.get("memo"),
+#                         user_id=row.get("user_id")
+#                     )
+#                     db_session.add(task)
+#                     imported_tasks += 1
 
-        db_session.commit()
-        db_session.close()
+#         db_session.commit()
+#         db_session.close()
 
-        return jsonify({
-            "message": f"Imported {imported_users} users and {imported_tasks} tasks successfully"
-        })
+#         return jsonify({
+#             "message": f"Imported {imported_users} users and {imported_tasks} tasks successfully"
+#         })
     
-@app.route("/api/repeating-tasks", methods=["GET"])
-@jwt_required()
-def list_repeating_tasks():
-    user_id = get_jwt_identity()
+# @app.route("/api/repeating-tasks", methods=["GET"])
+# @jwt_required()
+# def list_repeating_tasks():
+#     user_id = get_jwt_identity()
 
-    db_session = SessionLocal()
+#     db_session = SessionLocal()
 
-    tasks = db_session.query(RepeatingTask).filter_by(user_id=user_id).all()
-    serialized_tasks = [task.to_dict() for task in tasks]
+#     tasks = db_session.query(RepeatingTask).filter_by(user_id=user_id).all()
+#     serialized_tasks = [task.to_dict() for task in tasks]
 
-    db_session.close()
+#     db_session.close()
 
-    return jsonify({'tasks': serialized_tasks})
+#     return jsonify({'tasks': serialized_tasks})
 
-@app.route("/api/repeating-tasks", methods=["POST"])
-@jwt_required()
-def create_repeating_task():
+# @app.route("/api/repeating-tasks", methods=["POST"])
+# @jwt_required()
+# def create_repeating_task():
 
-    db_session = SessionLocal()
-    try:
-        user_id = get_jwt_identity()
-        data = request.get_json()
+#     db_session = SessionLocal()
+#     try:
+#         user_id = get_jwt_identity()
+#         data = request.get_json()
 
-        for key in ["name", "first_due", "high_priority"]:
-            if key not in data:
-                return jsonify({"error": f"Missing field {key}"}), 400
-
-
-            frequency_months = int(data.get("frequency_months", 0))
-            frequency_weeks = int(data.get("frequency_weeks", 0))
-            frequency_days = int(data.get("frequency_days", 0))
-            frequency_hours = int(data.get("frequency_hours", 0))
-            frequency_minutes = int(data.get("frequency_minutes", 0))
-
-            frequency = relativedelta(
-                months=frequency_months,
-                weeks=frequency_weeks,
-                days=frequency_days,
-                hours=frequency_hours,
-                minutes=frequency_minutes
-            )
+#         for key in ["name", "first_due", "high_priority"]:
+#             if key not in data:
+#                 return jsonify({"error": f"Missing field {key}"}), 400
 
 
-            name = data.get('name')
-            created_at = datetime.now()
-            first_due = datetime.fromisoformat(data.get('first_due'))
-            next_due = first_due + frequency
-            memo = data.get('memo')
-            high_priority = data.get('high_priority')
+#             frequency_months = int(data.get("frequency_months", 0))
+#             frequency_weeks = int(data.get("frequency_weeks", 0))
+#             frequency_days = int(data.get("frequency_days", 0))
+#             frequency_hours = int(data.get("frequency_hours", 0))
+#             frequency_minutes = int(data.get("frequency_minutes", 0))
 
-            new_repeating_task = RepeatingTask(
-                name = name,
-                created_at = created_at,
-                frequency_months = frequency_months,
-                frequency_weeks = frequency_weeks,
-                frequency_days = frequency_days,
-                frequency_hours = frequency_hours,
-                frequency_minutes = frequency_minutes,
-                first_due = first_due,
-                next_due = next_due,
-                memo = memo,
-                high_priority = high_priority,
-                user_id = user_id
-            )
+#             frequency = relativedelta(
+#                 months=frequency_months,
+#                 weeks=frequency_weeks,
+#                 days=frequency_days,
+#                 hours=frequency_hours,
+#                 minutes=frequency_minutes
+#             )
 
-            db_session.add(new_repeating_task)
-            db_session.commit()
 
-            return jsonify({"msg": "Task created"}), 201  
+#             name = data.get('name')
+#             created_at = datetime.now()
+#             first_due = datetime.fromisoformat(data.get('first_due'))
+#             next_due = first_due + frequency
+#             memo = data.get('memo')
+#             high_priority = data.get('high_priority')
+
+#             new_repeating_task = RepeatingTask(
+#                 name = name,
+#                 created_at = created_at,
+#                 frequency_months = frequency_months,
+#                 frequency_weeks = frequency_weeks,
+#                 frequency_days = frequency_days,
+#                 frequency_hours = frequency_hours,
+#                 frequency_minutes = frequency_minutes,
+#                 first_due = first_due,
+#                 next_due = next_due,
+#                 memo = memo,
+#                 high_priority = high_priority,
+#                 user_id = user_id
+#             )
+
+#             db_session.add(new_repeating_task)
+#             db_session.commit()
+
+#             return jsonify({"msg": "Task created"}), 201  
         
-    except SQLAlchemyError as e:
-        db_session.rollback()
-        return jsonify({"error": "Database error", "details": str(e)}), 500
+#     except SQLAlchemyError as e:
+#         db_session.rollback()
+#         return jsonify({"error": "Database error", "details": str(e)}), 500
 
-    except Exception as e:
-        return jsonify({"error": "Unexpected error", "details": str(e)}), 500
+#     except Exception as e:
+#         return jsonify({"error": "Unexpected error", "details": str(e)}), 500
 
-    finally:
-        db_session.close()
+#     finally:
+#         db_session.close()
 
 
-# @app.route("/api/repeating-tasks/<int:task_id>", methods=["GET"])
+# # @app.route("/api/repeating-tasks/<int:task_id>", methods=["GET"])
+# # @jwt_required()
+# # def get_repeating_task(task_id):
+# #     user_id = get_jwt_identity()
+
+
+# # @app.route("/api/repeating-tasks/<int:task_id>", methods=["PUT"])
+# # @jwt_required()
+# # def update_repeating_task(task_id):
+# #     user_id = get_jwt_identity()
+
+
+# @app.route("/api/repeating-tasks/<int:task_id>", methods=["DELETE"])
 # @jwt_required()
-# def get_repeating_task(task_id):
+# def delete_repeating_tasks(task_id):
 #     user_id = get_jwt_identity()
 
+#     db_session = SessionLocal()
 
-# @app.route("/api/repeating-tasks/<int:task_id>", methods=["PUT"])
-# @jwt_required()
-# def update_repeating_task(task_id):
-#     user_id = get_jwt_identity()
+#     task = db_session.query(RepeatingTask).filter_by(id=task_id, user_id=user_id).first()
 
+#     db_session.delete(task)
+#     db_session.commit()
+#     db_session.close()
 
-@app.route("/api/repeating-tasks/<int:task_id>", methods=["DELETE"])
-@jwt_required()
-def delete_repeating_tasks(task_id):
-    user_id = get_jwt_identity()
+#     return "", 204
 
-    db_session = SessionLocal()
-
-    task = db_session.query(RepeatingTask).filter_by(id=task_id, user_id=user_id).first()
-
-    db_session.delete(task)
-    db_session.commit()
-    db_session.close()
-
-    return "", 204
+    return app

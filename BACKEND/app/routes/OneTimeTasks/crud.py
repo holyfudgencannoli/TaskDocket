@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ...db import SessionLocal
-from ...models.OneTimeTask import OneTimeTask
+from ...models.Tasks.OneTimeTask import OneTimeTask
 from datetime import datetime
 
 
@@ -9,9 +9,10 @@ ott_bp = Blueprint("one_time_tasks", __name__)
 
 
 @ott_bp.route('/', methods=['GET'])
-@jwt_required()
+# @jwt_required()
 def get_tasks():
-    user_id = get_jwt_identity()
+    # user_id = get_jwt_identity()
+    user_id = 1
 
     db_session = SessionLocal()
 
@@ -21,16 +22,18 @@ def get_tasks():
 
     db_session.close()
 
-    return jsonify({'one_time_tasks': tasks})
+    return jsonify({'tasks': tasks, "msg": "Success!"}), 200
+
 
 
 @ott_bp.route('/', methods=['POST'])
 @jwt_required()
 def log_drt_tasks():
-    user_id = get_jwt_identity()
+    # user_id = get_jwt_identity()
+    user_id = 1
 
-    if not user_id:
-        return "Unauthorized", 401
+    # if not user_id:
+    #     return "Unauthorized", 401
 
     db_session = SessionLocal()
 
@@ -39,14 +42,20 @@ def log_drt_tasks():
     name = data.get('name')
     due_datetime = datetime.fromisoformat(data.get('due_datetime'))
     priority = data.get('priority')
-    prior_notice = data.get('prior_notice')
+    prior_notice_months = data.get('priorNoticeMonths')
+    prior_notice_weeks = data.get('priorNoticeWeeks')
+    prior_notice_days = data.get('priorNoticeDays')
+    prior_notice_hours = data.get('priorNoticeHours')
     created_at = datetime.now()
 
     new_ott = OneTimeTask(
         name = name,
         due_datetime = due_datetime,
         priority = priority,
-        prior_notice = prior_notice,
+        prior_notice_months = prior_notice_months,
+        prior_notice_weeks = prior_notice_weeks,
+        prior_notice_days = prior_notice_days,
+        prior_notice_hours = prior_notice_hours,
         created_at = created_at,
         user_id = user_id
     )
@@ -58,21 +67,21 @@ def log_drt_tasks():
     except ValueError:
         db_session.rollback()
         print('Error: Invalid property value.')
-        return "Value Error", 400
+        return jsonify({"msg": "Value Error"}), 400
     except Exception as e:
         db_session.rollback()
         print(f'Unexpected error: {e}')
-        return "Internal Server Error", 500
+        return jsonify({"msg": "Internal Server Error"}), 500
     else:
         print(new_ott)
-        return "Successfully created~!", 201
+        return jsonify({"msg": "Successfully created~!"}), 201
     finally:
         db_session.close()
     
 
 
 
-@ott_bp.route('/<int:task_ id>', methods=['GET'])
+@ott_bp.route('/<int:task_id>', methods=['GET'])
 @jwt_required()
 def get_task(task_id):
     user_id = get_jwt_identity()

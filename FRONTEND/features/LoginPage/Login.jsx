@@ -87,8 +87,8 @@ export default function Login() {
                     }
                     style={{ marginTop: 16, marginBottom: 12 }}
                 />
-                {/* <Button onPress={() => navigation.navigate("Root")} color="#000080" style={styles.button} title='Log In'></Button> */}
-                <Button onPress={handleLogin} color="#000080" style={styles.button} title='Log In'></Button>
+                <Button onPress={() => navigation.navigate("Root")} color="#000080" style={styles.button} title='Log In'></Button>
+                {/* <Button onPress={handleLogin} color="#000080" style={styles.button} title='Log In'></Button> */}
             </Surface>
             <View style={{ display:'flex', flexDirection: 'row', margin: 'auto', gap: 48 }}>
                 <Button color="#000080" onPress={() => navigation.navigate('RegisterScreen')} title='Create Account'></Button>

@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ...db import SessionLocal
-from ...models.LimitedOpportunityTask import LimitedOpportunityTask
+from ...models.Tasks.LimitedOpportunityTask import LimitedOpportunityTask
 from datetime import datetime
 
 
@@ -9,9 +9,10 @@ lot_bp = Blueprint("limited _opportunity_tasks", __name__)
 
 
 @lot_bp.route('/', methods=['GET'])
-@jwt_required()
+# @jwt_required()
 def get_tasks():
-    user_id = get_jwt_identity()
+    # user_id = get_jwt_identity()
+    user_id = 1
 
     db_session = SessionLocal()
 
@@ -21,39 +22,40 @@ def get_tasks():
 
     db_session.close()
 
-    return jsonify({'one_time_tasks': tasks})
+    return jsonify({'tasks': tasks, 'msg': "Success!"})
 
 @lot_bp.route('/', methods=['POST'])
-@jwt_required()
+# @jwt_required()
 def log_drt_tasks():
-    user_id = get_jwt_identity()
+    # user_id = get_jwt_identity()
+    user_id = 1
 
-    if not user_id:
-        return "Unauthorized", 401
+    # if not user_id:
+        # return "Unauthorized", 401
 
     db_session = SessionLocal()
 
     data = request.get_json()
 
     name = data.get('name')
-    due_datetime = datetime.fromisoformat(data.get('due_datetime'))
+    open_date = datetime.fromisoformat(data.get('openDate'))
+    close_date = datetime.fromisoformat(data.get('closeDate'))
     priority = data.get('priority')
-    prior_notice = data.get('prior_notice')
-    delta_months = data.get('delta_months')
-    delta_weeks = data.get('delta_weeks')
-    delta_days = data.get('delta_days')
-    delta_hours = data.get('delta_hours')
+    reminder_months = data.get('reminderFrequencyMonths')
+    reminder_weeks = data.get('reminderFrequencyWeeks')
+    reminder_days = data.get('reminderFrequencyDays')
+    reminder_hours = data.get('reminderFrequencyHours')
     created_at = datetime.now()
 
     new_lot = LimitedOpportunityTask(
         name = name,
-        due_datetime = due_datetime,
+        open_datetime = open_date,
+        close_datetime = close_date,
         priority = priority,
-        prior_notice = prior_notice,
-        delta_months = delta_months,
-        delta_weeks = delta_weeks,
-        delta_days = delta_days,
-        delta_hours = delta_hours,
+        reminder_frequency_months=reminder_months,
+        reminder_frequency_weeks = reminder_weeks,
+        reminder_frequency_days = reminder_days,
+        reminder_frequency_hours = reminder_hours,
         created_at = created_at,
         user_id = user_id
     )
@@ -64,14 +66,14 @@ def log_drt_tasks():
     except ValueError:
         db_session.rollback()
         print('Error: Invalid property value.')
-        return "Value Error", 400
+        return jsonify({"msg": "Value Error"}), 400
     except Exception as e:
         db_session.rollback()
         print(f'Unexpected error: {e}')
-        return "Internal Server Error", 500
+        return jsonify({"msg": "Internal Server Error"}), 500
     else:
         print(new_lot)
-        return "Successfully created~!", 201
+        return jsonify({"msg": "Successfully created~!"}), 201
     finally:
         db_session.close()
     
@@ -79,7 +81,7 @@ def log_drt_tasks():
 
 
 
-@lot_bp.route('/<int:task_ id>', methods=['GET'])
+@lot_bp.route('/<int:task_id>', methods=['GET'])
 @jwt_required()
 def get_task(task_id):
     user_id = get_jwt_identity()

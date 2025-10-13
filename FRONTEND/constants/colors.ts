@@ -9,8 +9,18 @@ export const Colors = {
     formBackground: 'rgba(16, 160, 255, 0.45)',
     formLabelText: 'white', 
     formTitleText: 'rgba(1,160,16,1)',
-    primary: 'rgba(16, 160, 255, 0.45)',
-    secondary: 'rgba(1,160,16,1)'
+
+    primary1: 'rgba(16, 160, 255, 0.45)',
+    secondary1: 'rgba(1,160,16,1)',
+
+    primary2: 'rgba(1, 160, 16,1)',
+    secondary2: 'rgba(160,1,16,1)',
+
+    primary3: 'rgba(160, 1, 16, 1)',
+    secondary3: 'rgba(122,16,255,1)',
+
+    primary4: 'rgba(122, 16, 255, 1)',
+    secondary4: 'rgba(16,160,255,1)'
   },
   dark: {
     text: '#ECEDEE',
@@ -22,7 +32,17 @@ export const Colors = {
     formBackground: 'rgba(16, 160, 255, 0.45)',
     formLabelText: 'black',
     formTitleText: 'rgba(160,160,16,1)',
-    primary: 'rgba(16, 160, 255, 0.45)',
-    secondary: 'rgba(1,160,16,1)'
+    
+    primary1: 'rgba(16, 160, 255, 0.45)',
+    secondary1: 'rgba(1,160,16,1)',
+
+    primary2: 'rgba(1, 160, 16,1)',
+    secondary2: 'rgba(160,1,16,1)',
+
+    primary3: 'rgba(160, 1, 16, 1)',
+    secondary3: 'rgba(122,16,255,1)',
+    
+    primary4: 'rgba(122, 16, 255, 1)',
+    secondary4: 'rgba(16,160,255,S)'
   },
 };

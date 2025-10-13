@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { Button, StyleSheet, View } from 'react-native';
+import { Button, StyleSheet, View, Text } from 'react-native';
 import { Surface } from 'react-native-paper';
-import { ThemedText } from './ThemedText';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 
-export default function CrossPlatformDateTimePicker({ datetime, onChangeDate }) {
+export default function CrossPlatformDateTimePicker({ datetime, onChangeDate, label }) {
 
         
     const handleAndroidChange = (event: any, date?: Date) => {
@@ -36,7 +35,7 @@ export default function CrossPlatformDateTimePicker({ datetime, onChangeDate }) 
 
         {Platform.OS === 'ios' ? (
             <Surface style={[styles.datetimePickerIosContainer, styles.surface]} >
-                <ThemedText style={styles.label}>Due</ThemedText>
+                <Text style={styles.label}>Due</Text>
                 <DateTimePicker
                     value={datetime}
                     onChange={(_, date) => date && onChangeDate(date)}
@@ -47,7 +46,8 @@ export default function CrossPlatformDateTimePicker({ datetime, onChangeDate }) 
         ) : (
             <>
                 <Surface style={styles.surface}>
-                    <ThemedText style={styles.label}>{datetime.toLocaleString()}</ThemedText>
+                    <Text style={styles.label}>{label}</Text>
+                    <Text style={styles.label}>{datetime.toLocaleString()}</Text>
                     <View style={styles.buttonsDatetime}>
                         <Button color={'#0000ff'} onPress={showDatePicker} title="Pick Date" />
                         <Button color={'#0000ff'} onPress={showTimePicker} title="Pick Time" />
@@ -76,7 +76,8 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection:'row',
     margin: 'auto',
-    gap: 48
+    gap: 8,
+    justifyContent: 'space-between'
 
   },
   buttonsForm: {
