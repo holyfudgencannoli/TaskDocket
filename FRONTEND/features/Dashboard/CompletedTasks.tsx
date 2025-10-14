@@ -1,90 +1,113 @@
-import { FlatList, View, Text } from "react-native";
+import React, { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react';
+import { View, Text, FlatList, Button, StyleSheet, Animated, Alert, ScrollView } from 'react-native';
 import { useAuth } from "../../scripts/AuthContext";
-import { StyleSheet } from "react-native";
-import { useCallback, useLayoutEffect, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 // import { scheduleNotification } from "../../scripts/NotificationScheduling";
 import { ScreenPrimative } from "../../components/Screen";
 import { apiFetch } from "../../scripts/FetchAPI";
+import { Surface } from "react-native-paper";
 
+
+interface GETRes{
+    tasks?: [{}];
+    msg?: string;
+}
+
+interface CompletedTask{
+    id: number;
+    name: string;
+    due_datetime: string;
+    created_at: string;
+    completed_datetime: string;
+    task_type: string;
+    user_id: number;
+}
 
 
 export default function CompletedTasks() {
     const { user, token } = useAuth()
-    const [tasksToday, setTasksToday] = useState([])
+    const [tasksCompleted, setTasksCompleted] = useState([])
+    const [tasksCompletedCount, setCompletedCount] = useState(0)
 
 
+  const animatedValues = useRef<Record<number, Animated.Value>>({}).current;
     
+  
+    const grabData = async () => {
+
+        const data: GETRes = await apiFetch('ct', 'GET', token)
+        console.log(data.msg)
+        setTasksCompleted(data.tasks)
+        console.log(data.tasks)
+    }
 
     useLayoutEffect(() => {
-        const grabData = async () => {
-            const lotData = await apiFetch('lot', 'GET', token)
-            const ottData = await apiFetch('ott', 'GET', token)
-            const srtData = await apiFetch('srt', 'GET', token)
-            const drtData = await apiFetch('drt', 'GET', token)
-        }
-    }, [])
+        grabData()
+    }, [token])
 
     useFocusEffect(
         useCallback(() => {
-            fetchTodaysTasks();
-        }, [])
+            grabData()
+        }, [token])
     );
 
-    // const data = tasksToday.map((task) => ({
-    //     id: task.id,
-    //     name: task.name,
-    //     dueDatetime: new Date(task.due_datetime).toLocaleString("en-GB", {
-    //         hour: '2-digit',
-    //         minute: '2-digit',
-    //         month: 'short',
-    //         day: 'numeric',
-    //         hour12: true
-    //     }),
+    const data = tasksCompleted.map((task) => ({
+        id: task.id,
+        name: task.name,
+        dueDatetime: new Date(task.due_datetime).toLocaleString("en-GB", {
+            hour: '2-digit',
+            minute: '2-digit',
+            month: 'short',
+            day: 'numeric',
+            hour12: true
+        }),
         
-    //     logTime: task.log_datetime ? new Date(task.log_datetime).toLocaleString("en-GB", {
-    //         month: 'short',
-    //         day: 'numeric',
-    //         hour: '2-digit',
-    //         minute: '2-digit',
-    //         hour12: true,
-    //     }) : 'Not completed yet',
-    // }))
+        completedTime: task.completed_datetime ? new Date(task.completed_datetime).toLocaleString("en-GB", {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        }) : 'Not completed yet',
+    }))
 
+            
 
 
     return(
         <ScreenPrimative>
             {/* <View style={styles.container}> */}
+            <Surface style={{ backgroundColor: 'rgba(255,255,0,0.5)', borderWidth: 2, borderColor: 'rgba(255, 1, 255, 1)' }}>
                 <Text style = {styles.listTitle}>
                     Tasks Completed
                 </Text>
-            <View>
-                {/* <Button title="press" /> */}
-                <FlatList
-                    style={styles.list}
-                    data={tasksToday}
-                    renderItem={({item}) => (
-                        <View style={styles.taskRow}>
-                            <Text style={styles.listItem}>{item.name}</Text>
-                            <Text>Due: {new Date(item.due_datetime).toLocaleTimeString("en-GB", {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: true,
-                            })}</Text>
-                            <Text>Logged: {new Date(item.log_datetime).toLocaleString("en-GB", {
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: true,
-                            })}</Text>
-                        </View>
-                    )}
-                >
+                <View>
+                    {/* <Button title="press" /> */}
+                    <FlatList
+                        style={styles.list}
+                        data={tasksCompleted}
+                        renderItem={({item}) => (
+                            <View style={styles.taskRow}>
+                                <Text style={styles.listItem}>{item.name}</Text>
+                                <Text>Due: {new Date(item.due_datetime).toLocaleTimeString("en-GB", {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: true,
+                                })}</Text>
+                                <Text>Completed: {new Date(item.completed_datetime).toLocaleString("en-GB", {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: true,
+                                })}</Text>
+                            </View>
+                        )}
+                    >
 
-                </FlatList>
-            </View>
+                    </FlatList>
+                </View>
+            </Surface>
         {/* </View> */}
 
         </ScreenPrimative>      

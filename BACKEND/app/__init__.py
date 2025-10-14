@@ -30,6 +30,7 @@ def create_app():
     
     Base.metadata.create_all(bind=engine)
     
+    app.register_blueprint(ct_bp, url_prefix='/api/ct')
     app.register_blueprint(ott_bp, url_prefix='/api/ott')
     app.register_blueprint(lot_bp, url_prefix='/api/lot')
     app.register_blueprint(srt_bp, url_prefix='/api/srt')

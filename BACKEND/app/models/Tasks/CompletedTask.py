@@ -12,16 +12,16 @@ class CompletedTask(Base):
     completed_datetime = Column(DateTime)
     task_type = Column(String)
     
-    ot_task = relationship("OneTimeTask", back_populates='completed_tasks')
+    ot_task = relationship("OneTimeTask", back_populates='completed_task')
     ot_task_id = Column(Integer, ForeignKey('one_time_tasks.id'))
 
-    lo_task = relationship("LimitedOpportunity", back_populates='completed_tasks')
+    lo_task = relationship("LimitedOpportunityTask", back_populates='completed_task')
     lo_task_id = Column(Integer, ForeignKey('limited_opportunity_tasks.id'))
 
-    sr_task = relationship("StaticRecurringTask", back_populates='completed_tasks')
-    sr_task_id = Column(Integer, ForeignKey('static_recurring.id'))
+    sr_task = relationship("StaticRecurringTask", back_populates='completed_task')
+    sr_task_id = Column(Integer, ForeignKey('static_recurring_tasks.id'))
 
-    dr_task = relationship("DynamicRecurringTask", back_populates='completed_tasks')
+    dr_task = relationship("DynamicRecurringTask", back_populates='completed_task')
     dr_task_id = Column(Integer, ForeignKey('dynamic_recurring_tasks.id'))
 
     user_id = Column(Integer, ForeignKey('users.id'))

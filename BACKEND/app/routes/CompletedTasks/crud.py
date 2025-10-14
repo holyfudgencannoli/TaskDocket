@@ -39,25 +39,24 @@ def log_drt_tasks():
 
     data = request.get_json()
 
+    
+
     name = data.get('name')
     due_datetime = datetime.fromisoformat(data.get('due_datetime'))
-    priority = data.get('priority')
-    prior_notice_months = data.get('priorNoticeMonths')
-    prior_notice_weeks = data.get('priorNoticeWeeks')
-    prior_notice_days = data.get('priorNoticeDays')
-    prior_notice_hours = data.get('priorNoticeHours')
     created_at = datetime.now()
+    completed_datetime = data.get('completed_datetime')
+    task_type = data.get('task_type')
+    user_id = data.get('user_id')
+    
 
     new_ott = CompletedTask(
         name = name,
         due_datetime = due_datetime,
-        priority = priority,
-        prior_notice_months = prior_notice_months,
-        prior_notice_weeks = prior_notice_weeks,
-        prior_notice_days = prior_notice_days,
-        prior_notice_hours = prior_notice_hours,
+        completed_datetime = completed_datetime,
+        task_type = task_type,
+        user_id = user_id,
+        
         created_at = created_at,
-        user_id = user_id
     )
 
 

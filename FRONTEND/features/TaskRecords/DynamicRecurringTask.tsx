@@ -1,7 +1,7 @@
-import { Text, View, Button } from "react-native";
+import React, { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react';
+import { View, Text, FlatList, Button, StyleSheet, Animated, Alert, ScrollView } from 'react-native';
 import { ScreenPrimative } from "../../components/Screen";
-import { Surface, Title } from "react-native-paper";
-import { useCallback, useState } from "react";
+import { Surface } from "react-native-paper";
 import { useThemeColor } from "../../hooks/use-theme-color";
 import { useThemeTypography } from "../../hooks/use-theme-typography";
 import { useThemeSpacing } from "../../hooks/use-theme-spacing";
@@ -17,7 +17,22 @@ interface GETRes{
     msg?: string;
 }
 
+interface CompletedTask{
+    id: number;
+    name: string;
+    due_datetime: string;
+    created_at: string;
+    completed_datetime: string;
+    task_type: string;
+    user_id: number;
+}
+
 export default function DynamicRecurringTaskRecords() {
+
+    const animatedValues = useRef<Record<number, Animated.Value>>({}).current;
+    
+    const [tasksCompleted, setTasksCompleted] = useState([])
+
     const [tasks, setTasks] = useState([{}])
 
     const  { user, token } = useAuth()
@@ -50,6 +65,15 @@ export default function DynamicRecurringTaskRecords() {
         
     ]
 
+
+    const grabData = async () => {
+
+        const data: GETRes = await apiFetch('ct', 'GET', token)
+        console.log(data.msg)
+        setTasksCompleted(data.tasks)
+        console.log(data.tasks)
+    }
+
     useFocusEffect(
         useCallback(() => {
             const getTasks = async() =>{
@@ -62,6 +86,46 @@ export default function DynamicRecurringTaskRecords() {
             getTasks()
         }, [token])
     )
+
+    
+    const markComplete = async (task: CompletedTask) => {
+        if (!task) return;
+
+        // Animate strikethrough
+        if (!animatedValues[task.id]) animatedValues[task.id] = new Animated.Value(0);
+        Animated.timing(animatedValues[task.id], {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: false,
+        }).start();
+
+        setTasksCompleted((prev) =>
+            prev.map((t) => (t.id === task.id ? { ...t, completed: true } : t))
+        );
+
+        
+        // scheduleNotification(new Date().getTime() + 5000, "Task Completed!", `You have completed "${task.name}". Great job!`)
+
+        setTimeout(async() => {
+            await fetch('https://react-tasks-online.onrender.com/api/mark-complete', {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+                },
+                credentials: 'include',
+                body: JSON.stringify({ task_id: task.id }),
+            }); 
+            grabData()
+
+        }, 2000);
+    };
+
+
+
+
+
+
     return(
         <ScreenPrimative edges={[]}>
                <ScrollableDataTable
@@ -70,10 +134,48 @@ export default function DynamicRecurringTaskRecords() {
                     // rowStyle={{ borderWidth: 1 , borderColor: 'rgba(160,1,16,0.5)', backgroundColor: 'white' }}
                     headerStyle={{ backgroundColor: 'rgba(160,1,16,0.5)', borderColor: 'rgba(122,16,255,0.5)', borderWidth: 2 }}
                     headerTextStyle={{  }}
+                    markComplete={markComplete}
                 />
-
+            
 
         </ScreenPrimative>
     )
 
 }
+
+
+const styles = StyleSheet.create({
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+  },
+  taskText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  subText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  strike: {
+    height: 2,
+    backgroundColor: 'red',
+    marginTop: 2,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 8,
+    minWidth: 250,
+    alignItems: 'center',
+  },
+});

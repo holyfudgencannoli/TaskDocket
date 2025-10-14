@@ -4,6 +4,7 @@ from .StaticRecurringTasks.crud import srt_bp
 from .OneTimeTasks.crud import ott_bp
 from .LimitedOpportunityTasks.crud import lot_bp
 from .Users.crud import users_bp
+from .CompletedTasks.crud import ct_bp
 
 __all__ = [
     "auth_bp",
@@ -11,5 +12,6 @@ __all__ = [
     "srt_bp",
     "ott_bp",
     "lot_bp",
-    "users_bp"
+    "users_bp", 
+    "ct_bp"
 ]
