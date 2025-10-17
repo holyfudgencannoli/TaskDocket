@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from ...db import Base
 
@@ -16,9 +16,8 @@ class LimitedOpportunityTask(Base):
     reminder_frequency_days = Column(Integer)
     reminder_frequency_hours = Column(Integer)
     created_at = Column(DateTime)
+    completed = Column(Boolean, default=False)
 
-    completed_task = relationship("CompletedTask", back_populates='lo_task')
-       
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship('User', back_populates='limited_opportunity_tasks')
 
@@ -34,7 +33,8 @@ class LimitedOpportunityTask(Base):
             "reminder_frequency_days": self.reminder_frequency_days,
             "reminder_frequency_hours": self.reminder_frequency_hours,
             "created_at": self.created_at.isoformat(),
-            "user_id": self.user_id
+            "user_id": self.user_id,
+            "completed": self.completed
         }
 
     def get_id(self):

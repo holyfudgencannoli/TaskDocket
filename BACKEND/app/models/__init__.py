@@ -2,6 +2,7 @@ from .Tasks.DynamicRecurringTask import DynamicRecurringTask
 from .Tasks.LimitedOpportunityTask import LimitedOpportunityTask
 from .Tasks.OneTimeTask import OneTimeTask
 from .Tasks.StaticRecurringTask import StaticRecurringTask
+from .Tasks.CompletedTask import CompletedTask
 from .User import User
 
 __all__ = [
@@ -9,5 +10,6 @@ __all__ = [
     "StaticRecurringTask",
     "OneTimeTask",
     "LimitedOpportunityTask",
-    "User"
+    "User", 
+    "CompletedTask"
 ]

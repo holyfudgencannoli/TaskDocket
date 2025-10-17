@@ -11,18 +11,7 @@ class CompletedTask(Base):
     due_datetime = Column(DateTime)
     completed_datetime = Column(DateTime)
     task_type = Column(String)
-    
-    ot_task = relationship("OneTimeTask", back_populates='completed_task')
-    ot_task_id = Column(Integer, ForeignKey('one_time_tasks.id'))
-
-    lo_task = relationship("LimitedOpportunityTask", back_populates='completed_task')
-    lo_task_id = Column(Integer, ForeignKey('limited_opportunity_tasks.id'))
-
-    sr_task = relationship("StaticRecurringTask", back_populates='completed_task')
-    sr_task_id = Column(Integer, ForeignKey('static_recurring_tasks.id'))
-
-    dr_task = relationship("DynamicRecurringTask", back_populates='completed_task')
-    dr_task_id = Column(Integer, ForeignKey('dynamic_recurring_tasks.id'))
+    task_id = Column(Integer)
 
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship('User', back_populates='completed_tasks')
@@ -35,7 +24,7 @@ class CompletedTask(Base):
             'completed_datetime': self.completed_datetime,
             'user_id': self.user_id,
             "task_type": self.task_type,
-            "task_id": self.ot_task_id or self.dr_task_id or self.lo_task_id or self.sr_task_id 
+            "task_id": self.task_id 
         }
     
     def get_id(self):

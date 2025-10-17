@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef, useLayoutEffect, useCallback } from 'react';
 import { View, Text, FlatList, Button, StyleSheet, Animated, Alert, ScrollView } from 'react-native';
 import { useAuth } from "../../scripts/AuthContext";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
 // import { scheduleNotification } from "../../scripts/NotificationScheduling";
 import { ScreenPrimative } from "../../components/Screen";
 import { apiFetch } from "../../scripts/FetchAPI";
 import { Surface } from "react-native-paper";
+import { TypeStyles } from '../../constants/typography';
 
 
 interface GETRes{
@@ -25,6 +26,9 @@ interface CompletedTask{
 
 
 export default function CompletedTasks() {
+    const route = useRoute();
+    const formTypography = TypeStyles(route.name);
+
     const { user, token } = useAuth()
     const [tasksCompleted, setTasksCompleted] = useState([])
     const [tasksCompletedCount, setCompletedCount] = useState(0)
@@ -75,10 +79,10 @@ export default function CompletedTasks() {
 
 
     return(
-        <ScreenPrimative>
+        <ScreenPrimative scroll style={{ marginBottom: 24 }} edges={[]}>
             {/* <View style={styles.container}> */}
-            <Surface style={{ backgroundColor: 'rgba(255,255,0,0.5)', borderWidth: 2, borderColor: 'rgba(255, 1, 255, 1)' }}>
-                <Text style = {styles.listTitle}>
+            <Surface style={{ backgroundColor: 'rgba(255,255,0,0.5)', padding: 16 }}>
+                <Text style = {formTypography.list.title}>
                     Tasks Completed
                 </Text>
                 <View>
@@ -90,6 +94,8 @@ export default function CompletedTasks() {
                             <View style={styles.taskRow}>
                                 <Text style={styles.listItem}>{item.name}</Text>
                                 <Text>Due: {new Date(item.due_datetime).toLocaleTimeString("en-GB", {
+                                    month: 'short',
+                                    day: 'numeric',
                                     hour: '2-digit',
                                     minute: '2-digit',
                                     hour12: true,
@@ -134,8 +140,10 @@ const styles = StyleSheet.create({
     textAlign:'center',
     fontWeight:'bold',
     fontSize: 28,
-    // padding: 36,
-    lineHeight: 42
+    padding: 16,
+    lineHeight: 42,
+    textShadowColor: 'white',
+    textShadowRadius: 4
 
     
   },
@@ -144,7 +152,8 @@ const styles = StyleSheet.create({
   },
   listItem: {
     fontSize: 24,
-
+    textShadowColor: 'white',
+    textShadowRadius: 4,
     margin: 8
   },
   taskRow: {

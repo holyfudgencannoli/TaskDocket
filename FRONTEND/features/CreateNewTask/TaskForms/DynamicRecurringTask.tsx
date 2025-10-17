@@ -9,12 +9,17 @@ import { TextInput } from "react-native-paper";
 import CrossPlatformDateTimePicker from "../../../components/CrossPlatformDateTimePicker";
 import { apiFetch } from "../../../scripts/FetchAPI";
 import { useAuth } from "../../../scripts/AuthContext";
+import { useRoute } from "@react-navigation/native";
+import { TypeStyles } from "../../../constants/typography";
 
 interface POSTRes{
     msg?: string;
 }
 
 export default function DynamicRecurringTask() {
+    const route = useRoute();
+    const formTypography = TypeStyles(route.name);
+
     const [formType, setFormType] = useState("")
     const [taskName, setTaskName] = useState("")
     const [months, setMonths] = useState(0)
@@ -24,7 +29,6 @@ export default function DynamicRecurringTask() {
     const [dueDate, setDueDate] = useState(new Date())
     const [priority, setPriority] = useState("")
 
-    const formTypography = useThemeTypography('form')
     const formBackgroundColor = useThemeColor({}, 'primary3')
     const formSpacing = useThemeSpacing('forms')
 
@@ -51,15 +55,18 @@ export default function DynamicRecurringTask() {
     return(
         <ScreenPrimative scroll edges={[]}>
             <Surface style={{ backgroundColor: formBackgroundColor, ...formSpacing.metaContainer3 }}>
-                <Surface style={{ ...formSpacing.container }}>
-                    <Text style={{ ...formTypography.title }}>
+                <Surface style={{ ...formSpacing.container , backgroundColor: formTypography.form.background.BackgroundColor}}>
+                    <Text style={{ ...formTypography.form.title }}>
                         New Dynamic Recurring Task
+                    </Text>
+                    <Text style={{ ...formTypography.form.subtitle }}>
+                        These tasks repeat on flexible schedules. When you mark one as complete, you’ll choose the next due date, and a new task will be created automatically.
                     </Text>
                 </Surface>
                 <Surface >
-                    <Surface style={{ ...formSpacing.inputFieldContainer }}>
+                    <Surface style={{ ...formSpacing.inputFieldContainer, backgroundColor: formTypography.form.background.BackgroundColor }}>
                         <View style={{ ...formSpacing.inputFieldLabelContainer }}>
-                            <Text style={{ ...formTypography.inputFieldLabel }}>
+                            <Text style={{ ...formTypography.form.inputFieldLabel }}>
                                 Task Name
                             </Text>
                         </View>
@@ -67,34 +74,34 @@ export default function DynamicRecurringTask() {
                             label={"Name"}
                             value={taskName}
                             onChangeText={setTaskName}
+                            mode="outlined"
 
                         />
                         <CrossPlatformDateTimePicker 
                             datetime={dueDate}
                             onChangeDate={setDueDate}
                             label={"Due Date"}
+                            labelStyle={formTypography.form.inputFieldLabel}
+                            buttonColor={formBackgroundColor}
                         />
 
                         <View style={{ ...formSpacing.inputFieldLabelContainer }}>
-                            <Text style={{ ...formTypography.inputFieldLabel }}>
+                            <Text style={{ ...formTypography.form.inputFieldLabel }}>
                                 Priority
                             </Text>
-                            
-                            
                         </View>
-
                         <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
-                            
+                                                    
                             <TouchableOpacity
                                 onPress={() => setPriority("Low")}
                                 activeOpacity={0.6}
                                 style={{
                                     padding: 10,
                                     borderRadius: 8,
-                                    backgroundColor: priority === "Low" ? "#007BFF" : "#E0E0E0",
+                                    backgroundColor: priority === "Low" ? formTypography.form.button.color : "#E0E0E0",
                                 }}
                             >
-                                <Text style={{ color: priority === "Low" ? "#fff" : "#000" }}>Low</Text>
+                                <Text style={{ color: priority === "Low" ? "#fff" : '#000' }}>Low</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -103,7 +110,7 @@ export default function DynamicRecurringTask() {
                                 style={{
                                     padding: 10,
                                     borderRadius: 8,
-                                    backgroundColor: priority === "Normal" ? "#007BFF" : "#E0E0E0",
+                                    backgroundColor: priority === "Normal" ? formTypography.form.button.color : "#E0E0E0",
                                 }}
                             >
                                 <Text style={{ color: priority === "Normal" ? "#fff" : "#000" }}>Normal</Text>
@@ -115,28 +122,20 @@ export default function DynamicRecurringTask() {
                                 style={{
                                     padding: 10,
                                     borderRadius: 8,
-                                    backgroundColor: priority === "High" ? "#007BFF" : "#E0E0E0",
+                                    backgroundColor: priority === "High" ? formTypography.form.button.color : "#E0E0E0",
                                 }}
                             >
                                 <Text style={{ color: priority === "High" ? "#fff" : "#000" }}>High</Text>
                             </TouchableOpacity>
-                        </View>
-
-                        
+                        </View>                        
                         <View style={{ ...formSpacing.inputFieldLabelContainer }}>
-                            <Text style={{ ...formTypography.inputFieldLabel }}>
-                                P
-                            </Text>
-                        </View>
-                        
-                        <View style={{ ...formSpacing.inputFieldLabelContainer }}>
-                            <Text style={{ ...formTypography.inputFieldLabel }}>
+                            <Text style={{ ...formTypography.form.inputFieldLabel }}>
                                 Prior Notice
                             </Text>
                         </View>
-                        <View style={{ display: 'flex', flexDirection: 'row' }}>
+                        <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
                             <View>
-                                <Text style={{ textAlign: 'center' }}>Months</Text>
+                                <Text style={formTypography.form.timeFieldLabel}>Months</Text>
                                 <TextInput
                                     mode="outlined"
                                     keyboardType="numeric"
@@ -146,7 +145,7 @@ export default function DynamicRecurringTask() {
                                 />
                             </View>
                             <View>
-                                <Text style={{ textAlign: 'center' }}>Weeks</Text>
+                                <Text style={formTypography.form.timeFieldLabel}>Weeks</Text>
                                 <TextInput
                                     mode="outlined"
                                     keyboardType="numeric"
@@ -156,7 +155,7 @@ export default function DynamicRecurringTask() {
                                 />
                             </View>
                             <View>
-                                <Text style={{ textAlign: 'center' }}>Days</Text>
+                                <Text style={formTypography.form.timeFieldLabel}>Days</Text>
                                 <TextInput
                                     mode="outlined"
                                     keyboardType="numeric"
@@ -166,7 +165,7 @@ export default function DynamicRecurringTask() {
                                 />
                             </View>
                             <View>
-                                <Text style={{ textAlign: 'center' }}>Hours</Text>
+                                <Text style={formTypography.form.timeFieldLabel}>Hours</Text>
                                 <TextInput
                                     mode="outlined"
                                     style={{  }}
@@ -181,7 +180,7 @@ export default function DynamicRecurringTask() {
 
                 </Surface>
             </Surface>
-            <Button title="Submit" onPress={handleSubmit}/>
+            <Button color={formTypography.form.button.color} title="Submit" onPress={handleSubmit}/>
 
         </ScreenPrimative>
     )

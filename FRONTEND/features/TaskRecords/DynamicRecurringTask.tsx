@@ -7,14 +7,23 @@ import { useThemeTypography } from "../../hooks/use-theme-typography";
 import { useThemeSpacing } from "../../hooks/use-theme-spacing";
 import { TextInput } from "react-native-paper";
 import { ScrollableDataTable } from "../../components/DataListWrapper";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
 import { apiFetch } from "../../scripts/FetchAPI";
 import { useAuth } from "../../scripts/AuthContext";
+import { TypeStyles } from '../../constants/typography';
+import { DRTModal } from '../../components/DRTModal';
 
 
 interface GETRes{
     tasks?: [{}];
     msg?: string;
+}
+
+interface Task {
+  id: number;
+  name: string;
+  due_datetime: string;
+  priority: string;
 }
 
 interface CompletedTask{
@@ -28,102 +37,92 @@ interface CompletedTask{
 }
 
 export default function DynamicRecurringTaskRecords() {
+    const route = useRoute();
+    const formTypography = TypeStyles(route.name);
 
     const animatedValues = useRef<Record<number, Animated.Value>>({}).current;
     
     const [tasksCompleted, setTasksCompleted] = useState([])
 
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const [modalVisible, setModalVisible] = useState(false);
+
     const [tasks, setTasks] = useState([{}])
 
     const  { user, token } = useAuth()
 
-    const formTypography = useThemeTypography('form')
     const formBackgroundColor = useThemeColor({}, 'primary1')
     const formSpacing = useThemeSpacing('forms')
 
-    const columns = [
-        {key: 'name', title:'Task Name'},
-        {key: 'due_datetime', title:'Coming Due Date', render: (row) => (
-            <Text style={{ textAlign: 'center' }}>
-            {row.due_datetime
-                ? new Date(
-                    row.due_datetime.endsWith('Z')
-                    ? row.due_datetime
-                    : row.due_datetime + 'Z'
-                ).toLocaleString("en-GB", {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour12: true,
-                    hour:'numeric',
-                    minute: 'numeric'
-                })
-                : ''}
-            </Text>
-        )},
-        {key: 'priority', title:'Priority'},
-        
-    ]
-
-
-    const grabData = async () => {
-
-        const data: GETRes = await apiFetch('ct', 'GET', token)
-        console.log(data.msg)
-        setTasksCompleted(data.tasks)
-        console.log(data.tasks)
-    }
-
+    const grabTasks = async () => {
+        const data: GETRes = await apiFetch("drt/incomplete", "GET", token);
+        if (data.tasks) setTasks(data.tasks);
+    };
+    
     useFocusEffect(
         useCallback(() => {
-            const getTasks = async() =>{
-                const data: GETRes = await apiFetch('drt', 'GET', token)
-                console.log(data.msg)
-                setTasks(data.tasks)
-                console.log(data.tasks)
-
-            }
-            getTasks()
+            grabTasks();
         }, [token])
-    )
+    );
 
-    
-    const markComplete = async (task: CompletedTask) => {
-        if (!task) return;
 
-        // Animate strikethrough
+    const handleComplete = (task: Task, newDueDate) => {
         if (!animatedValues[task.id]) animatedValues[task.id] = new Animated.Value(0);
+
+        const payload = {'due_date': newDueDate.toISOString()}
+
         Animated.timing(animatedValues[task.id], {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: false,
-        }).start();
-
-        setTasksCompleted((prev) =>
-            prev.map((t) => (t.id === task.id ? { ...t, completed: true } : t))
-        );
-
-        
-        // scheduleNotification(new Date().getTime() + 5000, "Task Completed!", `You have completed "${task.name}". Great job!`)
-
-        setTimeout(async() => {
-            await fetch('https://react-tasks-online.onrender.com/api/mark-complete', {
-                method: 'POST',
-                headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-                },
-                credentials: 'include',
-                body: JSON.stringify({ task_id: task.id }),
-            }); 
-            grabData()
-
-        }, 2000);
+        toValue: 1,
+        duration: 700,
+        useNativeDriver: false,
+        }).start(async () => {
+        try {
+            const res = await apiFetch(`drt/mark-complete/${task.id}`, "POST", token, payload);
+            console.log(res.msg);
+            grabTasks();
+        } catch (err) {
+            console.error(err);
+        }
+        });
     };
 
+    const renderTaskRow = (task: Task) => {
+        if (!animatedValues[task.id]) animatedValues[task.id] = new Animated.Value(0);
 
+        const strikeWidth = animatedValues[task.id].interpolate({
+        inputRange: [0, 1],
+        outputRange: ["0%", "100%"],
+        });
 
+        return (
+        <View style={{ position: "relative", paddingVertical: 4 }}>
+            <Text style={{ fontSize: 16 }}>{task.name}</Text>
+            <Animated.View style={[styles.strike, { width: strikeWidth, opacity: animatedValues[task.id] }]} />
+        </View>
+        );
+    };
 
+    const columns = [
+        { key: "name", title: "Task Name", render: renderTaskRow },
+        {
+        key: "due_datetime",
+        title: "Due Date",
+        render: (row: Task) => (
+            <Text style={{ textAlign: "center" }}>
+            {row.due_datetime ? new Date(row.due_datetime).toLocaleString() : ""}
+            </Text>
+        ),
+        },
+        { key: "priority", title: "Priority" },
+        {
+        key: "done",
+        title: "Done",
+        // render: (row: Task) => <Button title="✓" onPress={(row) => {
+        //         setSelectedTask(row)    
+        //         setModalVisible(true);
+        //     }} />,
+        },
+    ];
 
 
     return(
@@ -132,9 +131,19 @@ export default function DynamicRecurringTaskRecords() {
                     columns={columns}
                     data={tasks}
                     // rowStyle={{ borderWidth: 1 , borderColor: 'rgba(160,1,16,0.5)', backgroundColor: 'white' }}
-                    headerStyle={{ backgroundColor: 'rgba(160,1,16,0.5)', borderColor: 'rgba(122,16,255,0.5)', borderWidth: 2 }}
-                    headerTextStyle={{  }}
-                    markComplete={markComplete}
+                    headerStyle={formTypography.dataTable.headerView}
+                    headerTextStyle={formTypography.dataTable.headerText}
+                    onRowPress={(row) => {
+                        setSelectedTask(row)
+                        setModalVisible(true)
+                    }}
+                />
+
+                <DRTModal
+                    visible={modalVisible}
+                    task={selectedTask}
+                    onClose={() => setModalVisible(false)}
+                    onSave={handleComplete}
                 />
             
 

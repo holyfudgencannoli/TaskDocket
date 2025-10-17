@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 
-export default function CrossPlatformDateTimePicker({ datetime, onChangeDate, label }) {
+export default function CrossPlatformDateTimePicker({ datetime, onChangeDate, label, labelStyle, buttonColor }) {
 
         
     const handleAndroidChange = (event: any, date?: Date) => {
@@ -34,25 +34,27 @@ export default function CrossPlatformDateTimePicker({ datetime, onChangeDate, la
     return(<>
 
         {Platform.OS === 'ios' ? (
-            <Surface style={[styles.datetimePickerIosContainer, styles.surface]} >
-                <Text style={styles.label}>Due</Text>
-                <DateTimePicker
-                    value={datetime}
-                    onChange={(_, date) => date && onChangeDate(date)}
-                    mode='datetime'
-                    display='default'
-                />
-            </Surface>
+            <>
+                <Text style={labelStyle}>Due</Text>
+                <Surface style={[styles.datetimePickerIosContainer, styles.surface]} >
+                    <DateTimePicker
+                        value={datetime}
+                        onChange={(_, date) => date && onChangeDate(date)}
+                        mode='datetime'
+                        display='default'
+                    />
+                </Surface>
+            </>
         ) : (
             <>
+                <Text style={labelStyle}>{label}</Text>
                 <Surface style={styles.surface}>
-                    <Text style={styles.label}>{label}</Text>
                     <Text style={styles.label}>{datetime.toLocaleString()}</Text>
-                    <View style={styles.buttonsDatetime}>
-                        <Button color={'#0000ff'} onPress={showDatePicker} title="Pick Date" />
-                        <Button color={'#0000ff'} onPress={showTimePicker} title="Pick Time" />
-                    </View> 
                 </Surface>
+                    <View style={styles.buttonsDatetime}>
+                        <Button color={buttonColor} onPress={showDatePicker} title="Pick Date" />
+                        <Button color={buttonColor} onPress={showTimePicker} title="Pick Time" />
+                    </View> 
 
             </>
         )}  
@@ -126,8 +128,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   surface: {
-    margin: 16,
-    padding:16
+    // margin: 16,
+    // padding:16
   },
   frequencyInputLabel: {
     textAlign: 'center'

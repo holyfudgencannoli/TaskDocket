@@ -28,17 +28,22 @@ export const themeSpacing = {
             padding: 24,
             marginBottom: 12,
             // backgroundColor: 'rgba(16, 160, 255, 0.45)'
+            backgroundColor: 'rgba(13, 103, 163, 0.45)'
+
         },
         inputFieldContainer: {
             padding: 16,
+            // backgroundColor: 'rgba(13, 103, 163, 0.45)'
         },
         inputFieldLabelContainer: {
-            padding: 12,
+            // padding: 12,
             margin: 0
         },
         surface: {
             padding: 0,
-            margin: 0
+            margin: 0,
+            backgroundColor: 'rgba(13, 103, 163, 0.45)'
+
         },
         metaSurface: {
             padding: 0,

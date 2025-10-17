@@ -87,12 +87,12 @@ export default function Login() {
                     }
                     style={{ marginTop: 16, marginBottom: 12 }}
                 />
-                <Button onPress={() => navigation.navigate("Root")} color="#000080" style={styles.button} title='Log In'></Button>
-                {/* <Button onPress={handleLogin} color="#000080" style={styles.button} title='Log In'></Button> */}
+                <Button onPress={() => navigation.navigate("Root")} color="rgba(140,212,147,1)" style={styles.button} title='Log In'></Button>
+                {/* <Button onPress={handleLogin} color="rgba(140,212,147,1)" style={styles.button} title='Log In'></Button> */}
             </Surface>
             <View style={{ display:'flex', flexDirection: 'row', margin: 'auto', gap: 48 }}>
-                <Button color="#000080" onPress={() => navigation.navigate('RegisterScreen')} title='Create Account'></Button>
-                <Button color="#000080" title='Forgot Password' onPress={() => navigation.navigate('PasswordRecoveryScreen')}></Button>
+                <Button color="rgba(140,212,147,1)" onPress={() => navigation.navigate('RegisterScreen')} title='Create Account'></Button>
+                <Button color="rgba(140,212,147,1)" title='Forgot Password' onPress={() => navigation.navigate('PasswordRecoveryScreen')}></Button>
             </View>
         </ScreenPrimative>
     );

@@ -30,6 +30,7 @@ import OneTimeTaskRecords from './features/TaskRecords/OneTimeTask';
 import StaticRecurringTaskRecords from './features/TaskRecords/StaticRecurringTask';
 import DynamicRecurringTaskRecords from './features/TaskRecords/DynamicRecurringTask';
 import LimitedOpportunityRecords from './features/TaskRecords/LimitedOpportunityTask';
+import { useIsFocused } from '@react-navigation/native';
 
 
 
@@ -68,6 +69,7 @@ function RootBottomTabGroup() {
     return(
         <RootBottomTabs.Navigator
             screenOptions={({route}) => ({
+                tabBarActiveTintColor:'black'
                 tabBarIcon:({ focused, color, size }) =>{
                     let iconName;
 
@@ -80,11 +82,11 @@ function RootBottomTabGroup() {
                     } else if (route.name === 'Account'){
                         iconName = focused ? 'person' : 'person-outline' ;
                     }
-                    return <Ionicons name={iconName} size={size} color={color} />;
+                    return <Ionicons name={iconName} size={size} color={'rgba(147,212,255,1)'} />;
                 },
             })}
         >
-            <RootBottomTabs.Screen component={HomeStackGroup} name='Home' options={{ headerShown: false }}/>
+            <RootBottomTabs.Screen component={HomeStackGroup} name='Home' options={{ headerShown: false, unmountOnBlur: true}} screenOptions={{  }}/>
             <RootBottomTabs.Screen component={TaskStackGroup} name='Tasks' options={{ headerShown: false }}/>
             <RootBottomTabs.Screen component={RecordStackGroup} name='Records' options={{ headerShown: false }}/>
             <RootBottomTabs.Screen component={AccountStackGroup} name='Account' options={{ headerShown: false }}/>
@@ -98,16 +100,15 @@ function RootBottomTabGroup() {
 
 const HomeNav = createMaterialTopTabNavigator()
 
-function HomeNavGroup() {
-    return(
-            <HomeNav.Navigator>
-                <HomeNav.Screen component={Dashboard} name='Due Today' />
-                <HomeNav.Screen component={DueThisWeek} name='Due This Week' />
-                <HomeNav.Screen component={CompletedTasks} name='Completed Tasks' />
-                {/* <HomeNav.Screen component={RepeatingTaskInput} name='New Repeating Task' /> */}
-
-            </HomeNav.Navigator>
-    )
+function HomeNavGroup({navigation}) {
+    const isFocused = useIsFocused();
+    return isFocused ? (
+        <HomeNav.Navigator>
+            <HomeNav.Screen component={Dashboard} name="Due Today" />
+            <HomeNav.Screen component={DueThisWeek} name="Due This Week" />
+            <HomeNav.Screen component={CompletedTasks} name="Completed Tasks" />
+        </HomeNav.Navigator>
+    ) : null;
 }
 
 
@@ -141,15 +142,16 @@ function HomeStackGroup() {
 
 const TaskNav = createMaterialTopTabNavigator()
 
-function TaskNavGroup() {
-    return(
+function TaskNavGroup({naviagtion}) {
+    const isFocused = useIsFocused();
+    return isFocused ? (
         <TaskNav.Navigator>
-            <TaskNav.Screen  component={OneTimeTask} name='One-Time Tasks' />
+            <TaskNav.Screen  component={OneTimeTask} name='One-Time Tasks'  />
             <TaskNav.Screen  component={StaticRecurringTask} name='Static Recurring Tasks' />
             <TaskNav.Screen  component={DynamicRecurringTask} name='Dynamic Recurring Tasks' />
             <TaskNav.Screen  component={LimitedOpportunity} name='Limited Opportun. Tasks' />
         </TaskNav.Navigator>
-    )
+    ) : null;
 }
 
 
@@ -181,15 +183,16 @@ function TaskStackGroup() {
 
 const RecordNav = createMaterialTopTabNavigator()
 
-function RecordNavGroup() {
-    return(
+function RecordNavGroup({navigation}) {
+    const isFocused = useIsFocused();
+    return isFocused ? (
         <RecordNav.Navigator>
             <RecordNav.Screen  component={OneTimeTaskRecords} name='One-Time Tasks' />
             <RecordNav.Screen  component={StaticRecurringTaskRecords} name='Static Recurring Tasks' />
             <RecordNav.Screen  component={DynamicRecurringTaskRecords} name='Dynamic Recurring Tasks' />
             <RecordNav.Screen  component={LimitedOpportunityRecords} name='Limited Opportun. Tasks' />
         </RecordNav.Navigator>
-    )
+    ) : null;
 }
 
 

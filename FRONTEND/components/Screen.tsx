@@ -3,6 +3,7 @@ import React, { ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useThemeColor } from "../hooks/use-theme-color";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 type ScreenProps = {
   children: ReactNode;
@@ -19,7 +20,7 @@ export const ScreenPrimative: React.FC<ScreenProps> = ({
   style,
   contentContainerStyle,
   edges,
-  keyboardOffset = 0
+  keyboardOffset
 }) => {
   const backgroundColor = useThemeColor({}, 'background');
 
@@ -27,23 +28,22 @@ export const ScreenPrimative: React.FC<ScreenProps> = ({
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: backgroundColor }]} edges={edges}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={keyboardOffset}
-      >
-       {scroll ? (
-          <ScrollView
-            style={styles.flex}
-            contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
-            keyboardShouldPersistTaps="handled"
-          >
+     
+    
+        {scroll ? (
+            <KeyboardAwareScrollView
+                style={styles.flex}
+                contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
+                enableOnAndroid={true}
+                extraHeight={100}            // space above bottom fields
+                keyboardShouldPersistTaps="handled"
+                keyboardOpeningTime={0}
+            >
             {children}
-          </ScrollView>
+          </KeyboardAwareScrollView>
         ) : (
           <View style={[styles.contentContainer, style]}>{children}</View>
         )}
-      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   flex: {
-    flex: 1,
+    // flex: 1,
   },
   contentContainer: {
     flex: 1,

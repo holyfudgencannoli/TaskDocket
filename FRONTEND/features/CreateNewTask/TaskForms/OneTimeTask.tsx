@@ -9,12 +9,17 @@ import { TextInput } from "react-native-paper";
 import CrossPlatformDateTimePicker from "../../../components/CrossPlatformDateTimePicker";
 import { apiFetch } from "../../../scripts/FetchAPI";
 import { useAuth } from "../../../scripts/AuthContext";
+import { useRoute } from "@react-navigation/native";
+import { TypeStyles } from "../../../constants/typography";
 
 interface POSTRes{
     msg?: string;
 }
 
 export default function OneTImeTask() {
+    const route = useRoute();
+    const formTypography = TypeStyles(route.name);
+
     const [formType, setFormType] = useState("")
     const [taskName, setTaskName] = useState("")
     const [months, setMonths] = useState(0)
@@ -24,8 +29,6 @@ export default function OneTImeTask() {
     const [dueDate, setDueDate] = useState(new Date())
     const [priority, setPriority] = useState("")
 
-    const formTypography = useThemeTypography('form')
-    const formBackgroundColor = useThemeColor({}, 'primary3')
     const formSpacing = useThemeSpacing('forms')
 
     const { token, user } = useAuth()
@@ -49,17 +52,20 @@ export default function OneTImeTask() {
     }
 
     return(
-        <ScreenPrimative scroll edges={[]}>
-            <Surface style={{ backgroundColor: formBackgroundColor, ...formSpacing.metaContainer2 }}>
-                <Surface style={{ ...formSpacing.container }}>
-                    <Text style={{ ...formTypography.title }}>
+        <ScreenPrimative scroll edges={[]} keyboardOffset={400}>
+            <Surface style={{ ...formSpacing.metaContainer2 }}>
+                <Surface style={{ ...formSpacing.container, backgroundColor: formTypography.form.background.BackgroundColor }}>
+                    <Text style={{ ...formTypography.form.title }}>
                         New One-Time Task
+                    </Text>
+                    <Text style={{ ...formTypography.form.subtitle }}>
+                        Set a due date, and you’ll get a reminder when it’s time. This is the standard task type for most to-dos.
                     </Text>
                 </Surface>
                 <Surface >
-                    <Surface style={{ ...formSpacing.inputFieldContainer }}>
-                        <View style={{ ...formSpacing.inputFieldLabelContainer }}>
-                            <Text style={{ ...formTypography.inputFieldLabel }}>
+                    <Surface style={{ ...formSpacing.inputFieldContainer, backgroundColor: formTypography.form.background.BackgroundColor }}>
+                        <View style={{ ...formSpacing.inputFieldLabelContainer  }}>
+                            <Text style={{ ...formTypography.form.inputFieldLabel }}>
                                 Task Name
                             </Text>
                         </View>
@@ -67,34 +73,34 @@ export default function OneTImeTask() {
                             label={"Name"}
                             value={taskName}
                             onChangeText={setTaskName}
+                            mode="outlined"
 
                         />
                         <CrossPlatformDateTimePicker 
                             datetime={dueDate}
                             onChangeDate={setDueDate}
                             label={"Due Date"}
+                            labelStyle={formTypography.form.inputFieldLabel}
+                            buttonColor={formTypography.form.button.color}
                         />
 
                         <View style={{ ...formSpacing.inputFieldLabelContainer }}>
-                            <Text style={{ ...formTypography.inputFieldLabel }}>
+                            <Text style={{ ...formTypography.form.inputFieldLabel }}>
                                 Priority
                             </Text>
-                            
-                            
                         </View>
-
                         <View style={{ flexDirection: 'row', justifyContent: 'space-evenly' }}>
-                            
+                                                    
                             <TouchableOpacity
                                 onPress={() => setPriority("Low")}
                                 activeOpacity={0.6}
                                 style={{
                                     padding: 10,
                                     borderRadius: 8,
-                                    backgroundColor: priority === "Low" ? "#007BFF" : "#E0E0E0",
+                                    backgroundColor: priority === "Low" ? formTypography.form.button.color : "#fff",
                                 }}
                             >
-                                <Text style={{ color: priority === "Low" ? "#fff" : "#000" }}>Low</Text>
+                                <Text style={{ color: priority === "Low" ? "#fff" : '#000' }}>Low</Text>
                             </TouchableOpacity>
 
                             <TouchableOpacity
@@ -103,7 +109,7 @@ export default function OneTImeTask() {
                                 style={{
                                     padding: 10,
                                     borderRadius: 8,
-                                    backgroundColor: priority === "Normal" ? "#007BFF" : "#E0E0E0",
+                                    backgroundColor: priority === "Normal" ? formTypography.form.button.color : "#fff",
                                 }}
                             >
                                 <Text style={{ color: priority === "Normal" ? "#fff" : "#000" }}>Normal</Text>
@@ -115,7 +121,7 @@ export default function OneTImeTask() {
                                 style={{
                                     padding: 10,
                                     borderRadius: 8,
-                                    backgroundColor: priority === "High" ? "#007BFF" : "#E0E0E0",
+                                    backgroundColor: priority === "High" ? formTypography.form.button.color : "#fff",
                                 }}
                             >
                                 <Text style={{ color: priority === "High" ? "#fff" : "#000" }}>High</Text>
@@ -124,13 +130,13 @@ export default function OneTImeTask() {
 
                         
                         <View style={{ ...formSpacing.inputFieldLabelContainer }}>
-                            <Text style={{ ...formTypography.inputFieldLabel }}>
+                            <Text style={{ ...formTypography.form.inputFieldLabel }}>
                                 Prior Notice
                             </Text>
                         </View>
-                        <View style={{ display: 'flex', flexDirection: 'row' }}>
+                        <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'center' }}>
                             <View>
-                                <Text style={{ textAlign: 'center' }}>Months</Text>
+                                <Text style={formTypography.form.timeFieldLabel}>Months</Text>
                                 <TextInput
                                     mode="outlined"
                                     keyboardType="numeric"
@@ -140,7 +146,7 @@ export default function OneTImeTask() {
                                 />
                             </View>
                             <View>
-                                <Text style={{ textAlign: 'center' }}>Weeks</Text>
+                                <Text style={formTypography.form.timeFieldLabel}>Weeks</Text>
                                 <TextInput
                                     mode="outlined"
                                     keyboardType="numeric"
@@ -150,7 +156,7 @@ export default function OneTImeTask() {
                                 />
                             </View>
                             <View>
-                                <Text style={{ textAlign: 'center' }}>Days</Text>
+                                <Text style={formTypography.form.timeFieldLabel}>Days</Text>
                                 <TextInput
                                     mode="outlined"
                                     keyboardType="numeric"
@@ -160,11 +166,10 @@ export default function OneTImeTask() {
                                 />
                             </View>
                             <View>
-                                <Text style={{ textAlign: 'center' }}>Hours</Text>
+                                <Text style={formTypography.form.timeFieldLabel}>Hours</Text>
                                 <TextInput
                                     mode="outlined"
                                     style={{  }}
-                                    keyboardType="numeric"
                                     value={hours}
                                     onChangeText={setHours}
                                 />
@@ -175,7 +180,7 @@ export default function OneTImeTask() {
 
                 </Surface>
             </Surface>
-            <Button title="Submit" onPress={handleSubmit}/>
+            <Button color={formTypography.form.button.color} title="Submit" onPress={handleSubmit}/>
 
         </ScreenPrimative>
     )

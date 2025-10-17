@@ -1,22 +1,22 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from ...db import Base
+from datetime import datetime
 
 
 class OneTimeTask(Base):
     __tablename__ = "one_time_tasks"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    name = Column(String)
-    due_datetime = Column(DateTime)
-    priority = Column(String)
-    prior_notice_months = Column(Integer)
-    prior_notice_weeks = Column(Integer)
-    prior_notice_days = Column(Integer)
-    prior_notice_hours = Column(Integer)
-    created_at = Column(DateTime)
-    
-    completed_task = relationship("CompletedTask", back_populates='ot_task')
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String)
+    due_datetime: Mapped[datetime] = mapped_column(DateTime)
+    priority: Mapped[str] = mapped_column(String)
+    prior_notice_months: Mapped[int] = mapped_column(Integer)
+    prior_notice_weeks: Mapped[int] = mapped_column(Integer)
+    prior_notice_days: Mapped[int] = mapped_column(Integer)
+    prior_notice_hours: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user_id = Column(Integer, ForeignKey('users.id'))
     user = relationship('User', back_populates='one_time_tasks')
@@ -28,9 +28,13 @@ class OneTimeTask(Base):
             "name": self.name,
             "due_datetime": self.due_datetime.isoformat(),
             "priority": self.priority,
-            "prior_notice": self.prior_notice,
+            "prior_notice_months": self.prior_notice_months,
+            "prior_notice_weeks": self.prior_notice_weeks,
+            "prior_notice_days": self.prior_notice_days,
+            "prior_notice_hours": self.prior_notice_hours,
             "created_at": self.created_at.isoformat(),
-            "user_id": self.user_id
+            "user_id": self.user_id,
+            "completed": self.completed
         }
 
     def get_id(self):

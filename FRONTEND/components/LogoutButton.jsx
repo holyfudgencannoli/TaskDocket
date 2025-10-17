@@ -31,6 +31,6 @@ export default function LogoutButton() {
 
     return (
         
-        <Button id="logout-button" onPress={handleLogout} title="Logout" />
+        <Button color={'rgba(195,147,255,1)'} id="logout-button" onPress={handleLogout} title="Logout" />
     );
 }
